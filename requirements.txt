@@ -1,0 +1,42 @@
+fastapi>=0.115.0
+uvicorn>=0.30.0
+pandas>=2.2.3
+numpy>=2.1.0
+sentence-transformers>=2.5.1
+scikit-learn>=1.5.0
+spacy>=3.7.0
+python-multipart>=0.0.9
+requests>=2.32.0
+pydantic>=2.6.0
+
+streamlit
+streamlit-lottie
+numpy
+matplotlib
+Pillow
+requests
+vaderSentiment
+pandas
+
+# LangChain / LLM stack
+langchain
+langgraph
+openai
+tiktoken
+
+# Vector DB
+chromadb
+
+# Utilities
+python-dotenv
+pydantic
+
+# Backend (for API server if needed)
+fastapi
+uvicorn
+
+# For embeddings fallback
+sentence-transformers
+
+# Optional: safer compatibility
+typing-extensions
