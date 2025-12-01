@@ -74,10 +74,23 @@ def home():
 # MAIN QUERY ENDPOINT
 # --------------------------------------------------
 
+import traceback
+
 @app.post("/query")
 def query_news(request: QueryRequest):
-    result = query_agent.query(request.query)
-    return result
+    try:
+        result = query_agent.query(request.query)
+        return result
+    except Exception as e:
+        tb = traceback.format_exc()
+        print("❌ ERROR in /query:", e)
+        print(tb)
+
+        # Return error to Streamlit so we can see it
+        return {
+            "error": str(e),
+            "traceback": tb
+        }
 
 
 # --------------------------------------------------
