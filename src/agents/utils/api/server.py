@@ -149,11 +149,20 @@ def get_single_article(article_id: int):
 # SEMANTIC SEARCH (TF-IDF VECTOR)
 # --------------------------------------------------
 
+import traceback
+
 @app.get("/search/semantic/{text}")
 def semantic_search(text: str):
-    """
-    Performs TF-IDF semantic search.
-    """
-    vec = query_agent.embedder.encode(text, convert_to_numpy=True)
-    res = store.search_by_vector(vec, top_k=10, namespace="sent-emb")
-    return res
+    try:
+        q_vec = query_agent.embedder.encode(text, convert_to_numpy=True)
+        res = store.search_by_vector(q_vec, top_k=5, namespace="sent-emb")
+        return res
+
+    except Exception as e:
+        tb = traceback.format_exc()
+        print("❌ ERROR in /search/semantic:", e)
+        print(tb)
+        return {
+            "error": str(e),
+            "traceback": tb
+        }
