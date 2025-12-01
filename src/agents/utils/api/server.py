@@ -1,4 +1,25 @@
 # src/agents/utils/api/server.py
+# add at top of file
+import traceback
+from fastapi import Request
+
+# replace existing /query endpoint with this debug version
+@app.post("/query")
+def query_news(request: QueryRequest):
+    try:
+        # original flow
+        result = query_agent.query(request.query)
+        return result
+    except Exception as e:
+        # DEBUG: return traceback so we can see what's failing
+        tb = traceback.format_exc()
+        # Log to server console too
+        print("ERROR in /query:", str(e))
+        print(tb)
+        return {
+            "error": str(e),
+            "traceback": tb
+        }
 
 from fastapi import FastAPI
 from pydantic import BaseModel
