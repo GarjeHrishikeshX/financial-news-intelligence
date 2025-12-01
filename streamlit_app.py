@@ -61,71 +61,71 @@ page = st.sidebar.selectbox(
 # SEARCH PAGE
 # ----------------------------------------------------------
 
-if page == "Search News":
-    st.subheader("🔍 Smart Financial Search")
-    st_lottie(search_lottie, height=180)
+if st.button("Search"):
+    if not query.strip():
+        st.warning("Please type a query.")
+    else:
+        with st.spinner("Analyzing your request..."):
+            try:
+                response = requests.post(
+                    f"{BACKEND_URL}/query",
+                    json={"query": query},
+                    timeout=30
+                )
 
-    query = st.text_input(
-        "Enter a query:",
-        placeholder="Try: HDFC Bank news, RBI policy updates, Banking sector analysis..."
-    )
+                # Debugging: show non-JSON response
+                if response.status_code != 200:
+                    st.error(f"Backend error {response.status_code}")
+                    st.code(response.text)
+                    st.stop()
 
-    if st.button("Search"):
-        if not query.strip():
-            st.warning("Please type a query.")
-        else:
-            with st.spinner("Analyzing your request..."):
                 try:
-                    response = requests.post(
-                        f"{BACKEND_URL}/query",
-                        json={"query": query},
-                        timeout=30
-                    )
                     data = response.json()
+                except Exception:
+                    st.error("Backend did not return JSON:")
+                    st.code(response.text)
+                    st.stop()
 
-                    # Interpretation
-                    st.markdown("### 🧠 Query Understanding")
-                    st.json(data["interpretation"])
+                # Normal flow
+                st.markdown("### 🧠 Query Understanding")
+                st.json(data["interpretation"])
 
-                    # Results
-                    st.markdown("### 📄 Top Results")
+                st.markdown("### 📄 Top Results")
 
-                    for item in data["results"]:
-                        with st.container():
-                            st.markdown(
-                                f"""
-                                <div style="
-                                    padding: 15px;
-                                    border-radius: 12px;
-                                    background-color: #f7f7f9;
-                                    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-                                    margin-bottom: 12px;
-                                ">
-                                    <h4 style="margin-bottom:5px;">{item['title']}</h4>
-                                    <p>{item['content'][:400]}...</p>
+                for item in data["results"]:
+                    st.markdown(
+                        f"""
+                        <div style="
+                            padding: 15px;
+                            border-radius: 12px;
+                            background-color: #f7f7f9;
+                            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+                            margin-bottom: 12px;
+                        ">
+                            <h4 style="margin-bottom:5px;">{item['title']}</h4>
+                            <p>{item['content'][:400]}...</p>
 
-                                    <span style="
-                                        background:#4CAF50;
-                                        color:white;
-                                        padding:4px 10px;
-                                        border-radius:6px;
-                                        font-size:13px;
-                                    ">
-                                        Score: {item['score']}
-                                    </span>
+                            <span style="
+                                background:#4CAF50;
+                                color:white;
+                                padding:4px 10px;
+                                border-radius:6px;
+                                font-size:13px;
+                            ">
+                                Score: {item['score']}
+                            </span>
 
-                                    <p style="font-size:13px;color:#555;margin-top:8px;">
-                                        {item['explanation']}
-                                    </p>
-                                </div>
-                                """,
-                                unsafe_allow_html=True
-                            )
+                            <p style="font-size:13px;color:#555;margin-top:8px;">
+                                {item['explanation']}
+                            </p>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
 
-                except Exception as e:
-                    st.error("Backend error.")
-                    st.exception(e)
-
+            except Exception as e:
+                st.error("Streamlit → Backend request failed.")
+                st.exception(e)
 
 # ----------------------------------------------------------
 # BROWSE ARTICLES PAGE
