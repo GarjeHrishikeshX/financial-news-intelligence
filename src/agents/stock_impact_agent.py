@@ -1,147 +1,59 @@
 # src/agents/stock_impact_agent.py
-
 from typing import List, Dict, Any
-
+import numpy as np
+from src.agents.entity_extraction_agent import EntityExtractionAgent
+from src.agents.storage_agent import StorageAgent
+from src.agents.utils.fallback_embedder import get_fallback_embedder
 
 class StockImpactAgent:
     """
-    Maps extracted entities (companies, sectors, regulators)
-    to impacted stock symbols with confidence scores.
-
-    Scoring Rules:
-      - Direct company mention → 1.0
-      - Sector-level impact → 0.6–0.8
-      - Regulatory event → 0.4–0.7
+    Simple rule-based stock impact analysis. Keeps memory small.
     """
 
-    def __init__(self):
-        print("[StockImpactAgent] Initializing...")
+    def __init__(self, db_path: str = "data/storage.db"):
+        self.store = StorageAgent(db_path)
+        self.entity_agent = EntityExtractionAgent()
+        # fallback embedder for any optional similarity needs
+        self._embedder = get_fallback_embedder()
 
-        # -------------------------------
-        # Company → Stock Symbol Mapping
-        # -------------------------------
-        self.stock_symbols = {
-            "HDFC Bank": "HDFCBANK",
-            "ICICI Bank": "ICICIBANK",
-            "TCS": "TCS",
-            "Infosys": "INFY",
-            "Reliance Retail": "RELIANCE",
-            "Adani Ports": "ADANIPORTS",
-            "Maruti Suzuki": "MARUTI",
-            "L&T": "LT",
-            "Coal India": "COALINDIA",
-            "Bajaj Finance": "BAJFINANCE",
-            "Paytm": "PAYTM",
-            "Air India": "AIRINDIA",
-            "SpiceJet": "SPICEJET"
-        }
-
-        # -------------------------------
-        # Sector → Representative Stocks
-        # (Used for sector-wide impact)
-        # -------------------------------
-        self.sector_to_stocks = {
-            "Banking": ["HDFCBANK", "ICICIBANK"],
-            "Financial Services": ["BAJFINANCE"],
-            "Retail": ["RELIANCE"],
-            "IT Services": ["TCS", "INFY"],
-            "Logistics": ["ADANIPORTS"],
-            "Infrastructure": ["LT"],
-            "Mining": ["COALINDIA"],
-            "Automobile": ["MARUTI"],
-            "Fintech": ["PAYTM"],
-            "Aviation": ["AIRINDIA", "SPICEJET"]
-        }
-
-        # Regulators trigger medium confidence impact
-        self.regulator_confidence = {
-            "RBI": 0.6,
-            "SEBI": 0.5,
-            "US Fed": 0.5,
-            "Federal Reserve": 0.5
-        }
-
-        print("[StockImpactAgent] Ready.")
-
-    # ---------------------------------------------------------
-    # Main Impact Mapping Function
-    # ---------------------------------------------------------
-
-    def analyze_impact(self, entities: Dict[str, Any]) -> Dict[str, Any]:
+    def classify_impact(self, article: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Input:
-            entities = {
-               'id': 1,
-               'companies': [...],
-               'sectors': [...],
-               'regulators': [...]
-            }
-
-        Output:
-            {
-              "article_id": 1,
-              "impacted_stocks": [
-                {"symbol": "HDFCBANK", "confidence": 1.0, "type": "direct"},
-                {"symbol": "ICICIBANK", "confidence": 0.7, "type": "sector"},
-                {"symbol": "HDFCBANK", "confidence": 0.6, "type": "regulatory"}
-              ]
-            }
+        Return a lightweight impact dict for an article:
+          { "impact_type": "earnings|merger|policy|other", "score": float }
         """
+        text = (article.get("title", "") or "") + " . " + (article.get("content", "") or "")
+        text_lower = text.lower()
 
-        article_id = entities["id"]
-        companies = entities.get("companies", [])
-        sectors = entities.get("sectors", [])
-        regulators = entities.get("regulators", [])
+        # simple keyword heuristics
+        if "quarter" in text_lower or "q1" in text_lower or "q2" in text_lower or "earnings" in text_lower:
+            return {"impact_type": "earnings", "score": 0.9}
+        if "acquire" in text_lower or "merger" in text_lower or "acquisition" in text_lower:
+            return {"impact_type": "merger", "score": 0.8}
+        if "rbi" in text_lower or "reserve bank" in text_lower or "regulator" in text_lower:
+            return {"impact_type": "policy", "score": 0.7}
 
-        impacted = []
+        # fallback: small semantic cue using TF-IDF vector similarity to some templates
+        templates = [
+            "company earnings report",
+            "merger and acquisition",
+            "regulatory action"
+        ]
+        try:
+            v1 = self._embedder.encode([text], convert_to_numpy=True)[0]
+            v_templates = self._embedder.encode(templates, convert_to_numpy=True)
+            sims = np.dot(v_templates, v1) / (np.linalg.norm(v_templates, axis=1) * (np.linalg.norm(v1) + 1e-12))
+            top = int(np.argmax(sims))
+            if sims[top] > 0.25:
+                impact_map = {0: ("earnings", 0.55), 1: ("merger", 0.55), 2: ("policy", 0.55)}
+                itype, score = impact_map[top]
+                return {"impact_type": itype, "score": float(score + sims[top] * 0.4)}
+        except Exception:
+            pass
 
-        # -------------------------------
-        # 1️⃣ Direct Company Impact (1.0)
-        # -------------------------------
-        for comp in companies:
-            if comp in self.stock_symbols:
-                impacted.append({
-                    "symbol": self.stock_symbols[comp],
-                    "confidence": 1.0,
-                    "type": "direct",
-                    "company": comp
-                })
+        return {"impact_type": "other", "score": 0.2}
 
-        # -------------------------------
-        # 2️⃣ Sector-Level Impact (0.6–0.8)
-        # -------------------------------
-        for sector in sectors:
-            if sector in self.sector_to_stocks:
-                for stock in self.sector_to_stocks[sector]:
-                    impacted.append({
-                        "symbol": stock,
-                        "confidence": 0.7,  # midpoint confidence
-                        "type": "sector",
-                        "sector": sector
-                    })
-
-        # -------------------------------
-        # 3️⃣ Regulator Impact (0.4–0.7)
-        # -------------------------------
-        for reg in regulators:
-            conf = self.regulator_confidence.get(reg, 0.4)
-            # Apply to all banking/financial stocks for simplicity
-            for stock in ["HDFCBANK", "ICICIBANK", "BAJFINANCE"]:
-                impacted.append({
-                    "symbol": stock,
-                    "confidence": conf,
-                    "type": "regulatory",
-                    "regulator": reg
-                })
-
-        # Remove duplicates while keeping highest confidence
-        final_impacts = {}
-        for imp in impacted:
-            sym = imp["symbol"]
-            if sym not in final_impacts or imp["confidence"] > final_impacts[sym]["confidence"]:
-                final_impacts[sym] = imp
-
-        return {
-            "article_id": article_id,
-            "impacted_stocks": list(final_impacts.values())
-        }
+    def process_and_store(self, article: Dict[str, Any]):
+        impact = self.classify_impact(article)
+        # store impact in DB (implement store.save_impact)
+        self.store.save_impact(article.get("id"), impact)
+        return impact
