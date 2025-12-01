@@ -1,95 +1,108 @@
-# src/api/server.py
+# src/agents/utils/api/server.py
 
 from fastapi import FastAPI
-import json
 from pydantic import BaseModel
-from typing import List, Optional
+import sqlite3
+import json
+from typing import List, Dict
 
-from src.agents.news_ingestion import NewsIngestionAgent
-from src.agents.dedup_agent import DeduplicationAgent
-from src.agents.entity_extraction_agent import EntityExtractionAgent
-from src.agents.stock_impact_agent import StockImpactAgent
-from src.agents.storage_agent import StorageAgent
 from src.agents.query_agent import QueryAgent
+from src.agents.storage_agent import StorageAgent
 
-
-# -------------------------
-# FastAPI App Initialization
-# -------------------------
+# --------------------------------------------------
+# Initialize FastAPI
+# --------------------------------------------------
 
 app = FastAPI(
     title="AI Financial News Intelligence API",
-    description="Multi-Agent Financial News System (Hackathon Project)",
+    description="Lightweight Multi-Agent News Intelligence System",
     version="1.0.0"
 )
 
-# -------------------------
-# Request Models
-# -------------------------
+# --------------------------------------------------
+# Database + Agents
+# --------------------------------------------------
+
+DB_PATH = "data/storage.db"
+
+store = StorageAgent(DB_PATH)
+query_agent = QueryAgent(DB_PATH)
+
+
+# --------------------------------------------------
+# Models
+# --------------------------------------------------
 
 class QueryRequest(BaseModel):
     query: str
 
 
-# -------------------------
-# Initialize Agents (Global)
-# -------------------------
-
-store = StorageAgent("data/storage.db")
-query_agent = QueryAgent("data/storage.db")
-
-
-# -------------------------
+# --------------------------------------------------
 # Endpoints
-# -------------------------
+# --------------------------------------------------
 
 @app.get("/")
 def home():
     return {
         "message": "AI Financial News Intelligence System is running!",
-        "endpoints": ["/query", "/articles", "/stories"]
+        "endpoints": ["/query", "/articles", "/article/{id}", "/search/semantic/{text}"]
     }
 
 
+# --------------------------------------------------
+# MAIN QUERY ENDPOINT
+# --------------------------------------------------
+
 @app.post("/query")
 def query_news(request: QueryRequest):
-    """
-    Accepts natural language queries:
-    - "HDFC Bank news"
-    - "Banking sector update"
-    - "RBI policy change"
-    """
     result = query_agent.query(request.query)
     return result
 
 
+# --------------------------------------------------
+# LIST ARTICLES (DB SAFE VERSION)
+# --------------------------------------------------
+
 @app.get("/articles")
 def list_articles():
     """
-    Returns all stored articles (raw).
+    Returns list of articles stored in SQLite.
+    storage.db has: id, title, content, date, source
     """
-    cur = store.conn.cursor()
-    cur.execute("SELECT raw FROM articles")
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT id, title, content, date, source FROM articles")
     rows = cur.fetchall()
-    return [json.loads(r[0]) for r in rows]
+    conn.close()
+
+    out = []
+    for r in rows:
+        out.append({
+            "id": r[0],
+            "title": r[1],
+            "content": r[2],
+            "date": r[3],
+            "source": r[4]
+        })
+    return out
 
 
-@app.get("/stories")
-def list_stories():
-    """
-    Returns all deduplicated stories.
-    """
-    return store.load_all_stories()
-
+# --------------------------------------------------
+# GET SINGLE ARTICLE
+# --------------------------------------------------
 
 @app.get("/article/{article_id}")
 def get_single_article(article_id: int):
     """
-    Returns details for a specific article.
+    Returns an article + its entities + impacts
     """
     art = store.get_article(article_id)
-    ents = store.get_entities_for_article(article_id)
-    imp = store.get_impacts_for_article(article_id)
+
+    if not art:
+        return {"error": "Article not found"}
+
+    ents = store.get_entities_for_article(article_id) or {}
+    imp = store.get_impacts_for_article(article_id) or {}
 
     return {
         "article": art,
@@ -98,11 +111,15 @@ def get_single_article(article_id: int):
     }
 
 
+# --------------------------------------------------
+# SEMANTIC SEARCH (TF-IDF VECTOR)
+# --------------------------------------------------
+
 @app.get("/search/semantic/{text}")
 def semantic_search(text: str):
     """
-    Raw semantic similarity search (vector-based).
+    Performs TF-IDF semantic search.
     """
-    q_vec = query_agent.embedder.encode(text, convert_to_numpy=True)
-    res = store.search_by_vector(q_vec, top_k=5, namespace="sent-emb")
+    vec = query_agent.embedder.encode(text, convert_to_numpy=True)
+    res = store.search_by_vector(vec, top_k=10, namespace="sent-emb")
     return res

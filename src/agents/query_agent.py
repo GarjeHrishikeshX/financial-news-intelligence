@@ -2,13 +2,8 @@
 
 import numpy as np
 from typing import Dict, Any, List
-from sklearn.feature_extraction.text import TfidfVectorizer
-from src.agents.utils.fallback_embedder import get_fallback_embedder
-try:
-    from sentence_transformers import SentenceTransformer
-except Exception:
-    SentenceTransformer = None
 
+from src.agents.utils.fallback_embedder import get_fallback_embedder
 from src.agents.storage_agent import StorageAgent
 from src.agents.entity_extraction_agent import EntityExtractionAgent
 
@@ -18,7 +13,7 @@ class QueryAgent:
     Handles natural language queries and retrieves relevant news using:
       - Entity recognition in queries
       - Sector & company relationship expansion
-      - Semantic vector similarity search
+      - Semantic vector similarity search (TF-IDF fallback)
       - Structured filtering (companies, sectors, regulators)
     """
 
@@ -28,12 +23,9 @@ class QueryAgent:
         self.store = StorageAgent(db_path)
         self.entity_agent = EntityExtractionAgent()
 
-        # Embedding model for query understanding; provide a lightweight fallback when not available
-        if SentenceTransformer is not None:
-            self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
-        else:
-            print("[QueryAgent] sentence-transformers not found; using TF-IDF fallback embedder.")
-            self.embedder = get_fallback_embedder()
+        # Always use the lightweight TF-IDF fallback embedder on Render
+        self.embedder = get_fallback_embedder()
+        print("[QueryAgent] Using lightweight TF-IDF embedder.")
 
         # Sector reverse lookup (company → sector mapping)
         self.company_to_sector = self.entity_agent.sector_map
@@ -69,7 +61,7 @@ class QueryAgent:
             if sec:
                 sectors.append(sec)
 
-        # Generic sector queries ("banking news", "IT sector", etc.)
+        # Generic sector queries
         for sec in set(self.company_to_sector.values()):
             if sec.lower() in query_lower:
                 sectors.append(sec)
@@ -100,19 +92,19 @@ class QueryAgent:
     # 2️⃣ Expand query context
     # ------------------------------------------------------------
     def expand_context(self, info: Dict[str, Any]) -> Dict[str, Any]:
-        # If user queries HDFC Bank → include Banking sector news
         if info["query_type"] == "company":
             companies = info["companies"]
             sectors = list(set([self.company_to_sector.get(c) for c in companies if c]))
             info["sectors"] = sectors
-
         return info
 
     # ------------------------------------------------------------
-    # 3️⃣ Semantic Search + Filtering
+    # 3️⃣ Semantic Search + Filtering (TF-IDF based)
     # ------------------------------------------------------------
     def semantic_search(self, query: str, search_k: int = 10) -> List[Dict[str, Any]]:
-        q_vec = self.embedder.encode(query, convert_to_numpy=True)
+        # TF-IDF embedder returns shape (1, dim) → extract vector properly
+        q_vec = self.embedder.encode(query, convert_to_numpy=True)[0]
+
         results = self.store.search_by_vector(q_vec, top_k=search_k, namespace="sent-emb")
         return results
 
@@ -136,29 +128,24 @@ class QueryAgent:
             art_secs = entities.get("sectors", [])
             art_regs = entities.get("regulators", [])
 
-            # Filtering logic
             ok = False
 
-            # Company query → direct + sector news
             if info["query_type"] == "company":
                 if any(c in art_comps for c in companies):
                     ok = True
                 if any(s in art_secs for s in sectors):
                     ok = True
 
-            # Sector query
             elif info["query_type"] == "sector":
                 if any(s in art_secs for s in sectors):
                     ok = True
 
-            # Regulator query
             elif info["query_type"] == "regulator":
                 if any(rg in art_regs for rg in regulators):
                     ok = True
 
-            # Theme query → accept high semantic scores only
             else:
-                ok = r["score"] > 0.50
+                ok = r["score"] > 0.25  # Lower threshold for TF-IDF cosine
 
             if ok:
                 out.append({
@@ -167,33 +154,26 @@ class QueryAgent:
                     "score": r["score"]
                 })
 
-        # Sort by semantic score
         out = sorted(out, key=lambda x: -x["score"])
         return out
 
     # ------------------------------------------------------------
-    # 4️⃣ Generate final explanation for each result
+    # 4️⃣ Generate final explanation
     # ------------------------------------------------------------
     def explain_result(self, item: Dict[str, Any], info: Dict[str, Any]) -> str:
         explanation = []
 
         if item["entities"].get("companies"):
-            explanation.append(
-                f"Mentions companies: {', '.join(item['entities']['companies'])}"
-            )
+            explanation.append(f"Mentions companies: {', '.join(item['entities']['companies'])}")
 
         if item["entities"].get("sectors"):
-            explanation.append(
-                f"Sector relevance: {', '.join(item['entities']['sectors'])}"
-            )
+            explanation.append(f"Sector relevance: {', '.join(item['entities']['sectors'])}")
 
         if item["entities"].get("regulators"):
-            explanation.append(
-                f"Regulator involved: {', '.join(item['entities']['regulators'])}"
-            )
+            explanation.append(f"Regulator involved: {', '.join(item['entities']['regulators'])}")
 
         if not explanation:
-            explanation.append("Relevant due to semantic similarity to your query.")
+            explanation.append("Relevant due to semantic similarity.")
 
         return " | ".join(explanation)
 
@@ -203,17 +183,12 @@ class QueryAgent:
     def query(self, user_query: str) -> Dict[str, Any]:
         print("\n[QueryAgent] Processing query:", user_query)
 
-        # Step 1: Understand query
         info = self.interpret_query(user_query)
         info = self.expand_context(info)
 
-        # Step 2: Semantic search
         sem_results = self.semantic_search(user_query)
-
-        # Step 3: Structured filter
         matches = self.structured_filter(sem_results, info)
 
-        # Step 4: Generate explanation
         output = []
         for item in matches:
             output.append({
