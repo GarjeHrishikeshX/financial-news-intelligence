@@ -1,101 +1,61 @@
 🔎 AI Financial News Intelligence
+Multi-Agent Semantic Search • Sentiment Engine • Risk Analysis • Story Clustering
 
-A Multi-Agent Financial News Understanding System
-Built by: Hrishikesh Garje — DataSmith.ai Trainee
+This project was built as part of the AI Hiring Hackathon 2025, using a modern multi-agent architecture to analyze, cluster, search, and visualize financial news with high accuracy.
+It combines FastAPI, Streamlit, Sentence Transformers, FAISS, and custom NLP agents to create a full intelligence system.
 
-🚀 Overview
+🚀 Core Features
+🔍 1. Semantic Financial News Search
 
-This project is an AI-powered financial news intelligence platform built using a multi-agent architecture, semantic embeddings, clustering, sentiment analysis, and interactive visual analytics.
+Uses SentenceTransformer (MiniLM) embeddings
 
-The system analyzes financial news, extracts entities, groups related stories, evaluates sentiment, generates risk insights, and provides a complete visual dashboard for decision-making.
+FAISS similarity search
 
-Designed for AI Hiring Hackathon 2025.
+Extracts entities (companies, sectors, regulators)
 
-🧠 Key Features
-1️⃣ Multi-Agent Architecture
+Provides detailed relevance score + explanations
 
-News Ingestion Agent → Loads & preprocesses news
-
-Deduplication Agent → Identifies similar news & removes duplicates
-
-Entity Extraction Agent → Extracts companies, sectors, regulators
-
-Stock Impact Agent → Computes sentiment & impact
-
-Query Agent → Performs semantic search using embeddings
-
-Storage Agent → Manages persistent storage in SQLite
-
-2️⃣ Semantic Search Engine
-
-Uses SentenceTransformer (all-MiniLM-L6-v2)
-
-Retrieves relevant financial articles
-
-Provides similarity scores & explanations
-
-3️⃣ Real-Time Financial Dashboard (Streamlit)
-
-Includes:
-✔ Animated Donut Sentiment Chart
-✔ Sentiment Timeline Plot
-✔ Market Risk Gauge
-✔ Sector Heatmap
-✔ Entity Chips
-✔ Company Logo Fetching
-✔ Featured Article Cards
-✔ Full article browser
-✔ Story cluster visualizer
-
-4️⃣ Sentiment Analysis (VADER)
-
-Computes positive, neutral, negative scores
-
-Aggregates overall story sentiment
-
-Displays intuitive visuals
-
-5️⃣ Market Risk Meter
-
-A custom risk score:
-risk = neg*1.0 + neu*0.4 – pos*0.3
-Plotted as an animated gauge (0 = safe, 1 = risky)
-
-6️⃣ Story Grouping / Clustering
-
-Articles are grouped using embedding similarity
-
-Helps the model recognize news narratives
-
-📦 Tech Stack
-
-Python 3.13
-
-Sentence Transformers
-
-FAISS
-
-scikit-learn
-
-spaCy
-
-FastAPI
-
-Streamlit
+🧠 2. Multi-Agent Pipeline
+Agent	Purpose
+News Ingestion Agent	Cleans + loads CSV data into DB
+Dedup Agent	Removes duplicate financial news
+Entity Extraction Agent	Extracts companies, sectors, regulators
+Story Clustering Agent	Groups related articles into clusters
+Query Agent	Performs semantic search + filtering
+📊 3. Advanced Sentiment & Risk Analytics
 
 VADER Sentiment
 
-SQLite Database
+Animated donut chart
 
-📁 Folder Structure
+Sentiment timeline
 
+Sector-wise heatmap
+
+Market Risk Gauge (0–1 risk score)
+
+📰 4. Story Groups
+
+Clusters articles into meaningful "stories" using embeddings and similarity.
+
+🎨 5. Premium Streamlit UI
+
+Dark/light mode
+
+Animated charts
+
+Glassmorphic cards
+
+Auto-fetched company logos
+
+Real-time sentiment visuals
+
+🧩 Project Architecture
 financial-news-intelligence/
 │
-├── app.py
-├── requirements.txt
 ├── data/
 │   ├── news.csv
-│   └── storage.db
+│   ├── storage.db
 │
 ├── src/
 │   ├── agents/
@@ -104,64 +64,72 @@ financial-news-intelligence/
 │   │   ├── entity_extraction_agent.py
 │   │   ├── stock_impact_agent.py
 │   │   ├── query_agent.py
-│   │   └── storage_agent.py
+│   │   ├── storage_agent.py
 │   │
 │   └── api/
-│       └── server.py
+│       ├── server.py (FastAPI backend)
+│
+├── app.py (Streamlit Frontend)
+├── requirements.txt
+└── README.md
 
+🛠️ Installation
+Clone the project
+git clone https://github.com/GarjeHrishikeshX/financial-news-intelligence
+cd financial-news-intelligence
 
-⚙️ Installation
-1. Create virtual environment
+Create virtual environment
 python -m venv .venv
-.venv\Scripts\activate
+.venv\Scripts\activate   # Windows
 
-2. Install dependencies
+Install dependencies
 pip install -r requirements.txt
 
-3. Run ingestion
+📰 Run the Ingestion Pipeline
 python src/agents/news_ingestion.py
+python src/agents/dedup_agent.py
+python src/agents/entity_extraction_agent.py
+python src/agents/stock_impact_agent.py
 
-4. Run FastAPI Backend
-uvicorn src.api.server:app --reload
+⚡ Run FastAPI Backend
+uvicorn src.api.server:app --reload --port 8000
 
-5. Run Streamlit Dashboard
+
+Docs available at:
+👉 http://127.0.0.1:8000/docs
+
+🖥️ Run Streamlit UI
 streamlit run app.py
 
-🖥️ Usage Instructions
+📡 API Endpoints
+POST /query
 
-Enter a financial query → e.g., HDFC results, RBI policy, IT sector crash.
+Semantic search endpoint.
 
-System performs:
+Example:
 
-Query interpretation
+{
+  "query": "HDFC Bank quarterly earnings"
+}
 
-Entity extraction
+🏆 Why This Project Was Built
 
-Semantic search
+This solution was created for the AI Hiring Hackathon 2025 to demonstrate:
 
-Sentiment scoring
+Multi-agent system design
 
-Risk calculation
+Embedding-based search
 
-Visual dashboard presents insights.
+Real-time NLP analytics
 
-Browse deduplicated story clusters.
+Backend + frontend integration
 
-🏆 Hackathon Requirements — Completed
-Requirement	Status
-Multi-agent financial news pipeline	✅ Done
-Semantic search using embeddings	✅ Done
-Sentiment scoring & polarity visualization	✅ Done
-Stock/market risk estimation	✅ Done
-Story clustering / deduplication	✅ Done
-Full UI dashboard in Streamlit	✅ Done
-FastAPI backend	✅ Done
-Clean code & modular structure	✅ Done
-Ready-to-deploy	✅ Done
-👨‍💻 About the Developer
+Clean, professional project structure
+
+👨‍💻 Developer
 
 Hrishikesh Garje
-Trainee — DataSmith.ai
-Specialized in AI/ML & Intelligent Information Systems
+AI/ML Engineer • Data Science • GenAI Developer
+GitHub: https://github.com/GarjeHrishikeshX
 
-This project was developed during hands-on training at DataSmith.ai as a demonstration of building real-world AI-powered financial intelligence products.
+LinkedIn: https://www.linkedin.com/in/hrishikesh-garje-157a85327/
