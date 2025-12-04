@@ -1,241 +1,167 @@
-📘 README.md — AI Financial News Intelligence System
-📰 AI Financial News Intelligence System
-Multi-Agent LLM + NLP Pipeline for Financial News Understanding
+🔎 AI Financial News Intelligence
 
-Built for Real-Time Impact Analysis • Semantic Search • News Deduplication • Entity Extraction • Query Intelligence
+A Multi-Agent Financial News Understanding System
+Built by: Hrishikesh Garje — DataSmith.ai Trainee
 
-🚀 Project Overview
+🚀 Overview
 
-This project is an end-to-end financial news intelligence platform powered by a multi-agent architecture.
+This project is an AI-powered financial news intelligence platform built using a multi-agent architecture, semantic embeddings, clustering, sentiment analysis, and interactive visual analytics.
 
-It can:
+The system analyzes financial news, extracts entities, groups related stories, evaluates sentiment, generates risk insights, and provides a complete visual dashboard for decision-making.
 
-✔ Ingest financial news from multiple sources
-✔ Deduplicate similar articles into unified “stories”
-✔ Extract entities (companies, sectors, regulators)
-✔ Identify impactful events (earnings, mergers, policy changes, etc.)
-✔ Map news to relevant stocks or sectors
-✔ Perform semantic search using vector embeddings
-✔ Interpret natural-language user queries
-✔ Serve results via FastAPI
-✔ Provide a real-time UI via Streamlit
+Designed for AI Hiring Hackathon 2025.
 
-This system helps analysts, traders, fintech apps, and researchers access clean, deduped, structured, and queryable financial intelligence.
+🧠 Key Features
+1️⃣ Multi-Agent Architecture
 
-🧠 Tech Stack
-Core Technologies
+News Ingestion Agent → Loads & preprocesses news
 
-Python 3.10+
+Deduplication Agent → Identifies similar news & removes duplicates
 
-spaCy (NER)
+Entity Extraction Agent → Extracts companies, sectors, regulators
 
-Sentence Transformers (Semantic embeddings)
+Stock Impact Agent → Computes sentiment & impact
 
-FAISS (optional) / In-DB vector storage
+Query Agent → Performs semantic search using embeddings
 
-SQLite (lightweight storage)
+Storage Agent → Manages persistent storage in SQLite
 
-FastAPI (Backend API)
+2️⃣ Semantic Search Engine
 
-Streamlit (Frontend UI)
+Uses SentenceTransformer (all-MiniLM-L6-v2)
 
-AI / NLP
+Retrieves relevant financial articles
 
-MiniLM sentence embeddings
+Provides similarity scores & explanations
 
-Rule-based sector & regulator mapping
+3️⃣ Real-Time Financial Dashboard (Streamlit)
 
-Entity-Impact graph model
+Includes:
+✔ Animated Donut Sentiment Chart
+✔ Sentiment Timeline Plot
+✔ Market Risk Gauge
+✔ Sector Heatmap
+✔ Entity Chips
+✔ Company Logo Fetching
+✔ Featured Article Cards
+✔ Full article browser
+✔ Story cluster visualizer
 
-Multi-agent design pattern
+4️⃣ Sentiment Analysis (VADER)
 
-Project Architecture
+Computes positive, neutral, negative scores
+
+Aggregates overall story sentiment
+
+Displays intuitive visuals
+
+5️⃣ Market Risk Meter
+
+A custom risk score:
+risk = neg*1.0 + neu*0.4 – pos*0.3
+Plotted as an animated gauge (0 = safe, 1 = risky)
+
+6️⃣ Story Grouping / Clustering
+
+Articles are grouped using embedding similarity
+
+Helps the model recognize news narratives
+
+📦 Tech Stack
+
+Python 3.13
+
+Sentence Transformers
+
+FAISS
+
+scikit-learn
+
+spaCy
+
+FastAPI
+
+Streamlit
+
+VADER Sentiment
+
+SQLite Database
+
+📁 Folder Structure
+
 financial-news-intelligence/
- ├── data/
- │    ├── storage.db             # SQLite + vector store
- │    ├── news.csv               # Raw dataset
- │
- ├── src/
- │    ├── agents/
- │    │    ├── news_ingestion.py
- │    │    ├── dedup_agent.py
- │    │    ├── entity_extraction_agent.py
- │    │    ├── stock_impact_agent.py
- │    │    ├── storage_agent.py
- │    │    ├── query_agent.py
- │    │
- │    ├── api/
- │         ├── server.py         # FastAPI backend
- │
- ├── tests/
- │    ├── test_query.py
- │
- ├── app.py                      # Streamlit UI
- ├── requirements.txt
- ├── README.md
+│
+├── app.py
+├── requirements.txt
+├── data/
+│   ├── news.csv
+│   └── storage.db
+│
+├── src/
+│   ├── agents/
+│   │   ├── news_ingestion.py
+│   │   ├── dedup_agent.py
+│   │   ├── entity_extraction_agent.py
+│   │   ├── stock_impact_agent.py
+│   │   ├── query_agent.py
+│   │   └── storage_agent.py
+│   │
+│   └── api/
+│       └── server.py
 
-🔑 Key Features
-🔹 1. News Ingestion Agent
 
-Reads CSV / API feeds and loads news into the database.
+⚙️ Installation
+1. Create virtual environment
+python -m venv .venv
+.venv\Scripts\activate
 
-🔹 2. Deduplication Agent
+2. Install dependencies
+pip install -r requirements.txt
 
-Groups similar articles using embedding similarity.
-Creates “story clusters”.
+3. Run ingestion
+python src/agents/news_ingestion.py
 
-🔹 3. Entity Extraction Agent
+4. Run FastAPI Backend
+uvicorn src.api.server:app --reload
 
-Extract:
+5. Run Streamlit Dashboard
+streamlit run app.py
 
-Companies
+🖥️ Usage Instructions
 
-Regulators
+Enter a financial query → e.g., HDFC results, RBI policy, IT sector crash.
 
-Sectors
-Using spaCy + rule-based dictionaries.
+System performs:
 
-🔹 4. Stock Impact Analysis Agent
+Query interpretation
 
-Classifies news into:
-
-Earnings
-
-Market movement
-
-Policy change
-
-Supply chain
-
-Risk / fraud / regulatory crackdown
-
-Maps article → stock.
-
-🔹 5. Storage & Indexing Agent
-
-Single-file SQLite database storing:
-
-Articles
-
-Entities
-
-Impacts
-
-Story groups
-
-Vector embeddings
-
-🔹 6. Query Processing Agent
-
-Understands queries like:
-
-“HDFC Bank updates”
-
-“Banking sector analysis”
-
-“RBI policy impact on markets”
-
-Performs:
+Entity extraction
 
 Semantic search
 
-Entity-aware filtering
+Sentiment scoring
 
-Sector expansion
+Risk calculation
 
-Final ranking & explanation
+Visual dashboard presents insights.
 
-🔹 7. FastAPI Server
+Browse deduplicated story clusters.
 
-Endpoints:
+🏆 Hackathon Requirements — Completed
+Requirement	Status
+Multi-agent financial news pipeline	✅ Done
+Semantic search using embeddings	✅ Done
+Sentiment scoring & polarity visualization	✅ Done
+Stock/market risk estimation	✅ Done
+Story clustering / deduplication	✅ Done
+Full UI dashboard in Streamlit	✅ Done
+FastAPI backend	✅ Done
+Clean code & modular structure	✅ Done
+Ready-to-deploy	✅ Done
+👨‍💻 About the Developer
 
-/query
+Hrishikesh Garje
+Trainee — DataSmith.ai
+Specialized in AI/ML & Intelligent Information Systems
 
-/articles
-
-/stories
-
-/search/semantic/{text}
-
-🔹 8. Streamlit UI
-
-A beautiful, judge-friendly interface with:
-
-Search bar
-
-Results with explanations
-
-Article browser
-
-Story browse
-
-📥 Installation
-1. Clone the Project
-git clone <your-repo-url>
-cd financial-news-intelligence
-2. Install Dependencies
-pip install -r requirements.txt
-
-Note on Core NLP/Embedding Packages (sentence-transformers + torch)
-The project uses `sentence-transformers` for semantic embeddings which depends on a PyTorch backend.
-On Windows, install PyTorch first and then sentence-transformers. The following examples install a CPU-only version
-of PyTorch which works on most machines.
-
-Powershell (CPU-only):
-```
-pip install torch --index-url https://download.pytorch.org/whl/cpu
-pip install sentence-transformers
-```
-
-If you have a GPU and want to install CUDA-enabled PyTorch, use the official PyTorch installation instructions at https://pytorch.org/get-started/locally/ and then run `pip install sentence-transformers`.
-3. Add Dataset
-
-Place your CSV in:
-data/news.csv
-title,content,source,date
-"HDFC Bank Q4 Results","HDFC Bank reports record profit...",Economic Times,2024-01-10
-
-⚙️ Running the Pipeline
-1. Run Ingestion + Dedup + Entity Extraction
-
-(If you have script wrappers; otherwise run module-wise)
-python -m src.agents.ingestion_agent
-python -m src.agents.dedup_agent
-python -m src.agents.entity_extraction_agent
-python -m src.agents.stock_impact_agent
-
-🌐 Start FastAPI Backend
-uvicorn src.agents.utils.api.server:app --reload
-
-Now open:
-
-📌 API Docs: http://localhost:8000/docs
-📌 Home: http://localhost:8000/
-
-🖥 Start Streamlit UI
-streamlit run app.py
-
-Opens at:
-
-📌 http://localhost:8501/
-
-🧪 Testing
-
-Run included tests:
-python tests/test_query.py
-
-🎯 Example Query Output
-Query: "HDFC Bank news"
-
-Interpretation:
-{
-  "query_type": "company",
-  "companies": ["HDFC Bank"],
-  "sectors": ["Banking"],
-  "regulators": []
-}
-
-Results:
-- Title: HDFC Bank Announces 15% Dividend
-  Score: 0.92
-  Explanation: Mentions companies: HDFC Bank | Sector: Banking
+This project was developed during hands-on training at DataSmith.ai as a demonstration of building real-world AI-powered financial intelligence products.
